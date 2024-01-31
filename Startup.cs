@@ -29,12 +29,7 @@ namespace OneTimeCodeApi
             });
 
             // Register OracleConnection as a scoped dependency
-            services.AddScoped<OracleConnection>(_ =>
-            {
-                string connectionString = Configuration.GetConnectionString("OracleConnection");
-                return new OracleConnection(connectionString);
-            });
-
+           
             // Register your custom services like VerificationService
             services.AddScoped<VerificationService>();
 

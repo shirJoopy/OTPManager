@@ -1,6 +1,6 @@
-@OTPManager_HostAddress = http://localhost:5238
+@OTPManager_HostAddress = http://localhost:7143
 
-GET {{OTPManager_HostAddress}}/weatherforecast/
+GET {{OTPManager_HostAddress}}/verification/request-code
 Accept: application/json
 
 ###

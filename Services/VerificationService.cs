@@ -1,7 +1,10 @@
-﻿using OneTimeCodeApi.Services;
+﻿using Microsoft.AspNetCore.DataProtection;
 using Oracle.ManagedDataAccess.Client;
+using OTPManager.Services.Interfaces;
+using OTPManager.Utilities;
 using System;
 using System.Data;
+using System.Transactions;
 
 namespace OneTimeCodeApi.Services
 {
@@ -9,37 +12,46 @@ namespace OneTimeCodeApi.Services
     {
         private readonly OracleConnection _oracleConnection;
 
-        public VerificationService(OracleConnection oracleConnection)
+        private readonly IEncryptionService _encryptionService;
+
+        public VerificationService(OracleConnection oracleConnection, IEncryptionService encryptionService)
         {
             _oracleConnection = oracleConnection;
+            _encryptionService = encryptionService;
         }
 
-        public bool ValidateUser(string userName, string? phoneNumber)
+
+        public void CleanSecrets(string userName)
         {
+            OracleTransaction transaction = null;
+
             try
             {
                 _oracleConnection.Open();
 
-                string sql = "select count(*) from t010_authorizations t where t.username = :userName";
+                // Start a new transaction
+                transaction = _oracleConnection.BeginTransaction();
 
-                // Add logic to validate the user against the database
+                string sql = $"DELETE FROM T010_OTP_SECRETS WHERE USERNAME = :userName";
                 using (var cmd = new OracleCommand(sql, _oracleConnection))
                 {
-                    // Bind parameters
                     cmd.Parameters.Add("userName", OracleDbType.Varchar2).Value = userName;
 
-                    // Execute the query
-                    int count = Convert.ToInt32(cmd.ExecuteScalar());
-
-                    // Check if the user exists in the database
-                    return count > 0;
+                    cmd.Transaction = transaction; // Associate the command with the transaction
+                    cmd.ExecuteNonQuery();
                 }
+
+                // Commit the transaction to make the changes permanent
+                transaction.Commit();
             }
-            catch (OracleException ex)
+            catch (Exception ex)
             {
-                // Handle exceptions
-                // Log the error, return false, or take appropriate action
-                return false;
+                // Handle exceptions if needed
+                // You can choose to rollback the transaction here if an exception occurs
+                if (transaction != null)
+                {
+                    transaction.Rollback();
+                }
             }
             finally
             {
@@ -50,23 +62,76 @@ namespace OneTimeCodeApi.Services
             }
         }
 
-        public string GenerateAndSendCode(string? phoneNumber)
+        private string GenerateAndSaveSecret(string userName)
+        {
+            OracleTransaction transaction = null;
+
+            try
+            {
+                string secret = SecretGenerator.GenerateRandomSecret();
+                string sql = $"insert into T010_OTP_SECRETS values ('{userName}','{_encryptionService.Encrypt(secret)}',sysdate + INTERVAL '120' SECOND)";
+                using (var cmd = new OracleCommand(sql, _oracleConnection))
+                {
+                    transaction = _oracleConnection.BeginTransaction();
+                    cmd.Transaction = transaction;
+                    cmd.ExecuteNonQuery();
+
+                }
+                transaction.Commit();
+
+                // Handle exceptions
+                // Log the error, return false, or take appropriate action
+                return secret;
+            }
+            catch (Exception ex)
+            {
+                if (transaction != null)
+                {
+                    transaction.Rollback();
+                }
+                return SecretGenerator.GenerateRandomSecret();
+
+            }
+            finally
+            {
+                if (_oracleConnection.State == ConnectionState.Open)
+                {
+                    _oracleConnection.Close();
+                }
+            }
+
+        }
+
+
+        public string? GetUserSecret(string userName, string? phoneNumber)
         {
             try
             {
                 _oracleConnection.Open();
 
-                var oneTimeCode = GenerateOneTimeCode();
+                string sql = "SELECT ts.SECRET FROM T010_OTP_SECRETS ts, T010_AUTHORIZATIONS t10 " +
+                             "WHERE t10.username = :userName AND t10.username = ts.username AND ts.EXPIRATION > SYSTIMESTAMP";
 
-                // Add logic to send the code via SMS
+                // Add logic to validate the user against the database
+                using var cmd = new OracleCommand(sql, _oracleConnection);
+                cmd.Parameters.Add(new OracleParameter("userName", OracleDbType.Varchar2)).Value = userName;
 
-                return oneTimeCode;
+                // Execute the query
+                var key = cmd.ExecuteScalar();
+
+                // Check if the user exists in the database
+                if (key != null)
+                {
+                    return _encryptionService.Decrypt(key.ToString());
+                }
+                else
+                {
+                    throw new Exception();
+                }
             }
-            catch (OracleException ex)
+            catch (Exception ex)
             {
-                // Handle exceptions
-                // Log the error, return null, or take appropriate action
-                return "";
+                return GenerateAndSaveSecret(userName);
             }
             finally
             {
@@ -77,10 +142,5 @@ namespace OneTimeCodeApi.Services
             }
         }
 
-        private string GenerateOneTimeCode()
-        {
-            // Add logic to generate a one-time code
-            return "123456"; // Placeholder
-        }
     }
 }

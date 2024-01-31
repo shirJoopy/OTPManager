@@ -2,7 +2,11 @@
 {
     public class UserVerificationRequest
     {
-        public string? PhoneNumber { get; set; }
-        public string UserName { get; set; }
+        public required string PhoneNumber { get; set; }
+        public required string UserName { get; set; }
+    }
+    public class OTPVerificationRequest : UserVerificationRequest
+    {
+        public required string OTP { get; set; }
     }
 }

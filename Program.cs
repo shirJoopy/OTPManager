@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OneTimeCodeApi.Services;
 using Oracle.ManagedDataAccess.Client;
+using OTPManager.Services;
+using OTPManager.Services.Interfaces;
 using System.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,7 +13,13 @@ builder.Configuration.AddJsonFile("appsettings.json");
 
 // Add services to the container.
 builder.Services.AddControllers();
-
+builder.Services.AddScoped<OracleConnection>(_ =>
+ {
+     string connectionString = builder.Configuration.GetConnectionString("OracleConnection");
+     return new OracleConnection(connectionString);
+ });
+builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
+builder.Services.AddSingleton<IOTPService, OtpService>();
 builder.Services.AddScoped<IVerificationService, VerificationService>();
 
 // Add other necessary services here
