@@ -1,4 +1,4 @@
-﻿namespace OneTimeCodeApi.Models
+﻿namespace OTPManager.Models
 {
     public class UserVerificationRequest
     {

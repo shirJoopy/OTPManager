@@ -2,7 +2,7 @@ using OTPManager.Services.Interfaces;
 using OtpNet;
 using System.Text;
 
-namespace OneTimeCodeApi.Services
+namespace OTPManager.Services
 {
     public class OtpService : IOTPService
     {

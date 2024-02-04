@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using OneTimeCodeApi.Models;
-using OneTimeCodeApi.Services;
+using OTPManager.Models;
+using OTPManager.Services;
 using OTPManager.Services.Interfaces;
 
 
@@ -9,14 +9,9 @@ namespace OneTimeCodeApi.Controllers
 
     [ApiController]
     [Route("[controller]")]
-    public class OtpController : ControllerBase
+    public class OtpController(IOTPService otpService) : ControllerBase
     {
-        private readonly IOTPService _otpService;
-
-        public OtpController(IOTPService otpService)
-        {
-            _otpService = otpService;
-        }
+        private readonly IOTPService _otpService = otpService;
 
         [HttpPost("generate")]
         public ActionResult<string> GenerateOtp([FromBody] string secretKey)

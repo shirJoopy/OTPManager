@@ -6,7 +6,7 @@ using System;
 using System.Data;
 using System.Transactions;
 
-namespace OneTimeCodeApi.Services
+namespace OTPManager.Services
 {
     public class VerificationService : IVerificationService
     {

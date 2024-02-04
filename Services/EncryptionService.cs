@@ -21,47 +21,37 @@ namespace OTPManager.Services
 
         public string Encrypt(string textToEncrypt)
         {
-            using (Aes aesAlg = Aes.Create())
+            using Aes aesAlg = Aes.Create();
+            aesAlg.Key = Encoding.UTF8.GetBytes(encryptionKey);
+            aesAlg.IV = new byte[16]; // Initialization vector (IV) should be unique and random for each encryption
+
+            ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
+
+            using MemoryStream msEncrypt = new();
+
+            using (CryptoStream csEncrypt = new(msEncrypt, encryptor, CryptoStreamMode.Write))
             {
-                aesAlg.Key = Encoding.UTF8.GetBytes(encryptionKey);
-                aesAlg.IV = new byte[16]; // Initialization vector (IV) should be unique and random for each encryption
-
-                ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
-
-                using (MemoryStream msEncrypt = new MemoryStream())
-                {
-                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
-                    {
-                        using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
-                        {
-                            swEncrypt.Write(textToEncrypt);
-                        }
-                    }
-                    return Convert.ToBase64String(msEncrypt.ToArray());
-                }
+                using StreamWriter swEncrypt = new(csEncrypt);
+                swEncrypt.Write(textToEncrypt);
             }
+            return Convert.ToBase64String(msEncrypt.ToArray());
         }
 
         public string Decrypt(string encryptedText)
         {
-            using (Aes aesAlg = Aes.Create())
-            {
-                aesAlg.Key = Encoding.UTF8.GetBytes(encryptionKey);
-                aesAlg.IV = new byte[16]; // Same IV as used for encryption
+            using Aes aesAlg = Aes.Create();
+            aesAlg.Key = Encoding.UTF8.GetBytes(encryptionKey);
+            aesAlg.IV = new byte[16]; // Same IV as used for encryption
 
-                ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
+            ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 
-                using (MemoryStream msDecrypt = new MemoryStream(Convert.FromBase64String(encryptedText)))
-                {
-                    using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
-                    {
-                        using (StreamReader srDecrypt = new StreamReader(csDecrypt))
-                        {
-                            return srDecrypt.ReadToEnd();
-                        }
-                    }
-                }
-            }
+            using MemoryStream msDecrypt = new(Convert.FromBase64String(encryptedText));
+
+            using CryptoStream csDecrypt = new(msDecrypt, decryptor, CryptoStreamMode.Read);
+
+            using StreamReader srDecrypt = new(csDecrypt);
+
+            return srDecrypt.ReadToEnd();
         }
     }
 

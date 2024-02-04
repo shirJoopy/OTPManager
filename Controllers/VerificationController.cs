@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using OneTimeCodeApi.Models;
+using OTPManager.Models;
 using OTPManager.Services.Interfaces;
 using System.Text;
 
 namespace OneTimeCodeApi.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("verification")]
     public class VerificationController : ControllerBase
     {
         private readonly IVerificationService _verificationService;
