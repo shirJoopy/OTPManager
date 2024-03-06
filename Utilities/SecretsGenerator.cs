@@ -4,7 +4,7 @@ namespace OTPManager.Utilities
 {
     public class SecretGenerator
     {
-        public static string GenerateRandomSecret(int lengthBytes = 32)
+        public static string GenerateRandomSecret(int lengthBytes = 16)
         {
             if (lengthBytes <= 0)
             {

@@ -9,9 +9,14 @@ namespace OneTimeCodeApi.Controllers
 
     [ApiController]
     [Route("[controller]")]
-    public class OtpController(IOTPService otpService) : ControllerBase
+    public class OtpController : ControllerBase
     {
-        private readonly IOTPService _otpService = otpService;
+        private readonly IOTPService _otpService;
+
+        public OtpController(IOTPService otpService)
+        {
+            _otpService = otpService;
+        }
 
         [HttpPost("generate")]
         public ActionResult<string> GenerateOtp([FromBody] string secretKey)
@@ -30,7 +35,7 @@ namespace OneTimeCodeApi.Controllers
 
     public class OtpRequest
     {
-        public required string Otp { get; set; }
-        public required string SecretKey { get; set; }
+        public string Otp { get; set; }
+        public string SecretKey { get; set; }
     }
 }

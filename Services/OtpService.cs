@@ -9,7 +9,7 @@ namespace OTPManager.Services
         public string GenerateTotp(string key)
         {
             byte[] secretKey = Encoding.Unicode.GetBytes(key);
-            var totp = new Totp(secretKey);
+            Totp totp = new Totp(secretKey);
             return totp.ComputeTotp();
         }
 

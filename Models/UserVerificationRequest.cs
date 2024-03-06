@@ -1,12 +1,22 @@
-﻿namespace OTPManager.Models
+﻿using Newtonsoft.Json.Linq;
+
+namespace OTPManager.Models
 {
     public class UserVerificationRequest
     {
-        public required string PhoneNumber { get; set; }
-        public required string UserName { get; set; }
+        public string? Identifier { get; set; }
+        public string UserName { get; set; }
+        public int TenantId{ get; set; }
     }
-    public class OTPVerificationRequest : UserVerificationRequest
+    public class OTPVerificationRequest 
     {
-        public required string OTP { get; set; }
+        public string OTP { get; set; }
+    }
+
+    public class UserValidationRequest
+    {
+        public string? token { get; set; }
+        public string smsOrEmail { get; set; }
+        public int userId { get; set; }
     }
 }
