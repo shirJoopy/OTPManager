@@ -163,11 +163,15 @@ namespace OneTimeCodeApi.Controllers
             {
                 if (ex.Message == "User not found.")
                 {
-                    return Unauthorized(ex.Message);
+                    return Unauthorized($" {{ \"Status\" : \"Error\", " +
+                                            $"\"Data\": \"{ex.Message}\" " +
+                                            $"}} ");
                 }
                 else
                 {
-                    return ValidationProblem("Contact System admin to check Configuration");
+                    return ValidationProblem($"{{ \"Status\" : \"Error\", " +
+                                                 $"\"Data\": \"Contact System admin to check Configuration.\" " +
+                                                 $"}} ");
                 }
 
             }
@@ -197,7 +201,7 @@ namespace OneTimeCodeApi.Controllers
                 }
                 catch (Exception)
                 {
-                    return BadRequest($"{{ \"Status\" : \"Error\", \"Data\": \"Somthing went wrong when getting user Secret\" }}");
+                    return BadRequest($"{{ \"Status\" : \"Error\", \"Data\":Somthing went wrong when getting user Secret\" }}");
                 }
 
 
