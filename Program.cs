@@ -9,7 +9,16 @@ using OTPManager.Models;
 using OTPManager.Services;
 using OTPManager.Services.Interfaces;
 using OTPManager.Utilities;
+using System.Net;
 using System.Text;
+
+ServicePointManager.Expect100Continue = true;
+ServicePointManager.SecurityProtocol =
+    SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12 ;
+
+ServicePointManager.ServerCertificateValidationCallback +=
+    (sender, certificate, chain, sslPolicyErrors) => true;
+
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<ISmsService, SmsService>();
