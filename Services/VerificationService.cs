@@ -7,6 +7,7 @@ using System.Data;
 using System.Transactions;
 using Vonage.Accounts;
 using Vonage.Messages.Webhooks;
+using Vonage.Users;
 
 namespace OTPManager.Services
 {
@@ -51,7 +52,7 @@ namespace OTPManager.Services
         }
 
 
-        public void CleanSecrets(string userName,string type)
+        public void CleanSecrets(string userName, string type)
         {
             OracleTransaction transaction = null;
 
@@ -105,7 +106,7 @@ namespace OTPManager.Services
                 string secret = SecretGenerator.GenerateRandomSecret();
                 string sql = $"insert into T010_OTP_SECRETS " +
                              $"SELECT tt.username,'{_encryptionService.Encrypt(secret)}'," +
-                             $"sysdate + INTERVAL '{_configuration["KeyInterval"]?.ToString() ?? "120"}' SECOND," +
+                             $"sysdate + INTERVAL '{_configuration["KeyInterval"]?.ToString() ?? "600"}' SECOND," +
                              $"UPPER('{type}') " +
                              $"from t010_authorizations tt " +
                              $"where tt.username = :username " +
@@ -297,7 +298,7 @@ namespace OTPManager.Services
 
 
 
-        string IVerificationService.GetUserSecret(int tenantId, string userName, string identifer,string type)
+        string IVerificationService.GetUserSecret(int tenantId, string userName, string identifer, string type)
         {
             try
             {
@@ -310,10 +311,11 @@ namespace OTPManager.Services
                                 AND  ts.TYPE = upper(:type)
                                 AND ts.EXPIRATION > SYSTIMESTAMP ";
 
-                if (type.ToLower()== "sms")
+                if (type.ToLower() == "sms")
                 {
                     sql += " and t10.valid_phone = 'Y'";
-                } else if (type.ToLower() == "email")
+                }
+                else if (type.ToLower() == "email")
                 {
                     sql += " and t10.valid_email = 'Y'";
                 }
@@ -344,7 +346,42 @@ namespace OTPManager.Services
         }
 
 
-        
+        public string SetAndGetUserJoopyToken(int userId, string tokenType = "")
+        {
+            try
+            {
+                _oracleConnection.Open();
+                string token = Guid.NewGuid().ToString();
+                if (tokenType != string.Empty)
+                {
+                    tokenType = "_" + tokenType.ToUpper();
+                }
+                string sql = $@"update t010_authorizations t
+                                set t.USER_TOKEN{tokenType} = '{token}' 
+                                where t.user_id = :userId";
+
+                using var cmd = new OracleCommand(sql, _oracleConnection);
+                cmd.Parameters.Add("userId", OracleDbType.Int64).Value = userId;
+
+                cmd.ExecuteNonQuery();
+
+                return token;
+
+            }
+            catch (Exception ex)
+            {
+                // Consider logging the exception details
+                throw;
+            }
+            finally
+            {
+                if (_oracleConnection.State == System.Data.ConnectionState.Open)
+                {
+                    _oracleConnection.Close();
+                }
+            }
+        }
+
         public string GetRegistrationToken(int tenantId, string userName, string smsOrEmail)
         {
             return GenerateAndSaveSecret(tenantId, userName, smsOrEmail);

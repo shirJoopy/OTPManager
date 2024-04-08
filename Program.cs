@@ -55,7 +55,51 @@ builder.Services.Configure<SmsSettings>(builder.Configuration.GetSection("SmsSet
 
 builder.Services.AddTransient<EmailService>();
 
+builder.Services.AddAuthorization(options =>
+{
+    // Policy for resources accessible by tokens from Issuer A
+    options.AddPolicy("TOTP", policy =>
+        policy.RequireClaim("iss", "www.joopy.co.il/TOTP"));
 
+    // Policy for resources accessible by tokens from Issuer B
+    options.AddPolicy("Joopy", policy =>
+        policy.RequireClaim("iss", "www.joopy.co.il"));
+});
+
+
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = "TOTP";
+})
+.AddJwtBearer("TOTP", options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidateAudience = false,
+        ValidIssuer = "www.joopy.co.il/TOTP",
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(encryptionKey))
+    };
+})
+.AddJwtBearer("Joopy", options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidateAudience = false,
+        ValidIssuer = "www.joopy.co.il",
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(encryptionKey))
+   
+    };
+});
+
+/*
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
@@ -68,7 +112,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(encryptionKey))
     };
 });
-
+*/
 
 // Add services to the container.
 

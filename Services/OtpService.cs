@@ -9,17 +9,16 @@ namespace OTPManager.Services
         public string GenerateTotp(string key)
         {
             byte[] secretKey = Encoding.Unicode.GetBytes(key);
-            Totp totp = new Totp(secretKey);
+            Totp totp = new Totp(secretKey, step: 120);
             return totp.ComputeTotp();
         }
 
         public bool ValidateTotp(string providedOtp, string key)
         {
             byte[] secretKey = Encoding.Unicode.GetBytes(key);
-            var totp = new Totp(secretKey);
+            var totp = new Totp(secretKey, step: 120);
             return totp.VerifyTotp(providedOtp, out _, new VerificationWindow(1, 1));
         }
-
-        // You may want methods for generating and storing secret keys here as well.
     }
+
 }

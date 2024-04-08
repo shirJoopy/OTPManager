@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 using OTPManager.Filters;
 using OTPManager.Models;
 using OTPManager.Services;
@@ -7,6 +8,7 @@ using OTPManager.Services.Interfaces;
 using OTPManager.Utilities;
 using System.Text;
 using Vonage.Common.Monads;
+using Vonage.Users;
 
 namespace OneTimeCodeApi.Controllers
 {
@@ -44,6 +46,8 @@ namespace OneTimeCodeApi.Controllers
         }
 
         [HttpPost("register")]
+        [Authorize(AuthenticationSchemes = "TOTP")]
+
         public IActionResult Register(int userId, string smsOrEmail,string host)
         {
 
@@ -103,6 +107,7 @@ namespace OneTimeCodeApi.Controllers
         [HttpPost("request-totp")]
         [ServiceFilter(typeof(SendEmailTotp))] // Use ServiceFilter to support DI in the filter
         [ServiceFilter(typeof(SendSMSTotp))] // Use ServiceFilter to support DI in the filter
+        [Authorize(AuthenticationSchemes = "TOTP")]
         public IActionResult RequestOneTimeCode(string smsOrEmail)
         {
             var username = HttpContext.Items["username"]?.ToString();
@@ -178,13 +183,16 @@ namespace OneTimeCodeApi.Controllers
         }
 
         [HttpGet("validate-totp/{totp}")]
-        public IActionResult ValidateOneTimeCode(string totp,string smsOrEmail)
+        [Authorize(AuthenticationSchemes = "TOTP")]
+
+        public IActionResult ValidateOneTimeCode(string totp,string smsOrEmail,string tokenType="")
         {
 
             if (_verificationService != null)
             {
                 var username = HttpContext.Items["username"]?.ToString();
                 var identifier = HttpContext.Items["identifier"]?.ToString();
+                var userId = Int32.Parse(HttpContext.Items["userId"]?.ToString() ?? "");
                 var tenantId = Int32.Parse(HttpContext.Items["tenantId"]?.ToString());
                 Dictionary<string, string> details = (Dictionary<string, string>)HttpContext.Items["userDetails"];
 
@@ -193,23 +201,28 @@ namespace OneTimeCodeApi.Controllers
                 {
                     secret = _verificationService.GetUserSecret(tenantId, username, identifier, smsOrEmail);
 
-                    if (secret == null)
+                    if (secret == "")
                     {
-                        return BadRequest($"{{ \"Status\" : \"Error\", \"Data\": \"Invalid username or identifier\" }}");
+                        return Ok($"{{ \"Status\" : \"Error\", \"Data\": \"Invalid username or identifier\" }}");
                     }
 
                 }
                 catch (Exception)
                 {
-                    return BadRequest($"{{ \"Status\" : \"Error\", \"Data\":Somthing went wrong when getting user Secret\" }}");
+                    return Ok($"{{ \"Status\" : \"Error\", \"Data\":Somthing went wrong when getting user Secret\" }}");
                 }
 
 
                 var result = _otpService.ValidateTotp(totp, secret);
-                var Valid = result ? "true" : "false";
-
-                return Ok($"{{ \"Status\": \"Ok\", \"Data\": {Valid} }}");
-
+                if (result)
+                {
+                    string jwtToken = JWTGenerator.GenerateAccessJwtToken(details, _configuration);
+                    var token = _verificationService.SetAndGetUserJoopyToken(userId, tokenType);
+                    Response.Headers.Add("Authorization", "Bearer " + jwtToken);
+                    return Ok($"{{ \"Status\": \"Ok\", \"Data\": \"{token}\" }}");
+                }
+                return Ok($"{{ \"Status\": \"Error\", \"Data\": \"Oops looks like wrong OTP\" }}");
+                
             }
 
 

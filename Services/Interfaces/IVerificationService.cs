@@ -18,5 +18,7 @@
         void ValidateUser(int userId, string smsOrEmail);
 
         public string GenerateAndSaveSecret(int tenantId,string userName,string type);
+
+        public string SetAndGetUserJoopyToken(int userId, string tokenType = "");
     }
 }
