@@ -105,9 +105,9 @@ namespace OTPManager.Services
                 string validate_field = type.ToUpper() == "SMS" ? "phone" : "email";
                 string secret = SecretGenerator.GenerateRandomSecret();
                 string sql = $"insert into T010_OTP_SECRETS " +
-                             $"SELECT tt.username,'{_encryptionService.Encrypt(secret)}'," +
+                             $"SELECT tt.username,:secret ," +
                              $"sysdate + INTERVAL '{_configuration["KeyInterval"]?.ToString() ?? "600"}' SECOND," +
-                             $"UPPER('{type}') " +
+                             $"UPPER(:type) " +
                              $"from t010_authorizations tt " +
                              $"where tt.username = :username " +
                              $"and tt.tenant_id = :tenantId " +
@@ -115,6 +115,8 @@ namespace OTPManager.Services
 
                 using (var cmd = new OracleCommand(sql, _oracleConnection))
                 {
+                    cmd.Parameters.Add("secret", OracleDbType.Varchar2).Value = _encryptionService.Encrypt(secret);
+                    cmd.Parameters.Add("type", OracleDbType.Varchar2).Value = type;
                     cmd.Parameters.Add("username", OracleDbType.Varchar2).Value = userName;
                     cmd.Parameters.Add("tenantId", OracleDbType.Int64).Value = tenantId;
                     transaction = _oracleConnection.BeginTransaction();
