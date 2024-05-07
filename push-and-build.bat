@@ -42,7 +42,6 @@ git push -u origin %ARTIFACTS_BRANCH% --force
 
 REM Cleanup and return to master
 git checkout master
-git branch -D %ARTIFACTS_BRANCH%
 
 echo Build and push completed successfully.
 endlocal
