@@ -34,14 +34,17 @@ if %ERRORLEVEL% neq 0 (
 
 REM Step 4: Push build output to a different branch
 git checkout --orphan %ARTIFACTS_BRANCH%
-git rm -rf .
+git reset --hard  # Resets the index and working tree. Any changes to tracked files in the working tree since <commit> are discarded.
+
+REM Copy build output to the root of the working directory and commit
 xcopy /E /I %BUILD_OUTPUT_PATH% .
 git add .
-git commit -m "Updated build artifacts on $(date)"
+git commit -m "Updated build artifacts on %date%"
 git push -u origin %ARTIFACTS_BRANCH% --force
 
 REM Cleanup and return to master
 git checkout master
+git branch -D %ARTIFACTS_BRANCH%
 
 echo Build and push completed successfully.
 endlocal
