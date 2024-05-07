@@ -1,0 +1,43 @@
+﻿name: Build and Push to Branch
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run build script
+        run: python setup.py build
+
+      - name: Tag build
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -fa last -m "Latest build on $(date)"
+          git push origin :refs/tags/last
+          git push origin master --tags
+
+      - name: Push build to branch
+        run: |
+          git checkout --orphan temp-branch
+          git add -A
+          git commit -m "Publishing Latest Build $(date)"
+          git branch -M build-branch
+          git push origin build-branch --force
