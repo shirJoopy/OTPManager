@@ -5,7 +5,7 @@
     {
         Dictionary<string, string> GetUser(int userId);
 
-        Dictionary<string,string> GetUser(int tenantId, string userName,string identifer);
+        Dictionary<string,string> GetUser(string userName,string identifer);
 
         string GetUserSecret(int tenantId, string userName, string identifer,string type="TOTP");
 

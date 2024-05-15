@@ -239,7 +239,7 @@ namespace OTPManager.Services
 
         }
 
-        public Dictionary<string, string> GetUser(int tenantId, string username, string identifier)
+        public Dictionary<string, string> GetUser(string username, string identifier)
         {
             try
             {
@@ -249,14 +249,12 @@ namespace OTPManager.Services
                 string sql = $@"{this.userFieldsSql}
                           FROM T010_AUTHORIZATIONS t10
                           WHERE t10.USERNAME = :username 
-                          AND t10.TENANT_ID = :tenantId 
                           AND t10.TOTP_IDENTIFIER = :identifier
                           AND t10.SUSPEND_STATUS = 'NO'
                           AND (t10.locked_until is null OR t10.locked_until < sysdate)";
 
                 using var cmd = new OracleCommand(sql, _oracleConnection);
                 cmd.Parameters.Add("username", OracleDbType.Varchar2).Value = username;
-                cmd.Parameters.Add("tenantId", OracleDbType.Int64).Value = tenantId;
                 cmd.Parameters.Add("identifier", OracleDbType.Varchar2).Value = identifier;
 
                 using (var reader = cmd.ExecuteReader())

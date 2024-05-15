@@ -113,7 +113,7 @@ namespace OneTimeCodeApi.Controllers
             var username = HttpContext.Items["username"]?.ToString();
             var identifier = HttpContext.Items["identifier"]?.ToString();
             Dictionary<string, string> details = (Dictionary<string, string>)HttpContext.Items["userDetails"];
-            var tenantId = Int32.Parse(HttpContext.Items["tenantId"]?.ToString());
+            var tenantId = Int32.Parse(details["TENANT_ID"]);
             _verificationService.CleanSecrets(username, smsOrEmail);
 
             
@@ -158,7 +158,7 @@ namespace OneTimeCodeApi.Controllers
                 {
                     request.Identifier = request.UserName;
                 }
-                var user = _verificationService.GetUser(request.TenantId, request.UserName, request.Identifier);
+                var user = _verificationService.GetUser(request.UserName, request.Identifier);
                 string token = JWTGenerator.GenerateJwtToken(request.UserName, request.Identifier, request.TenantId, Int32.Parse(user["USER_ID"]), user["PHONE_NUMBER"], user["EMAIL"], _configuration);
 
 
