@@ -45,9 +45,32 @@ namespace OneTimeCodeApi.Controllers
             _emailService = eMailService;
         }
 
+
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("check")]
+        public IActionResult CheckHealth()
+        {
+            try
+            {
+                // Perform necessary health checks, e.g., check database connectivity, API dependencies, etc.
+                if (StaticDataStore.Languages.Count > 0 && _verificationService.CheckDbConnection())
+                {
+                    return Ok("Service is up and running.");
+                }
+                else
+                {
+                    return StatusCode(500, "DB is not connected to service");
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Health check failed: " + ex.Message);
+            }
+        }
+
         [HttpPost("register")]
         [Authorize(AuthenticationSchemes = "TOTP")]
-
         public IActionResult Register(int userId, string smsOrEmail,string host)
         {
 
@@ -225,12 +248,8 @@ namespace OneTimeCodeApi.Controllers
                 
             }
 
-
             return Ok($"{{ \"Status\": \"Error\", \"Data\" : \"No verifaication service injected\" }} ");
 
         }
-
-
-
     }
 }

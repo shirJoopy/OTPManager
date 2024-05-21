@@ -38,7 +38,7 @@ builder.Services.AddSwaggerGen(c =>
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole(); // Log to console
 builder.Logging.AddDebug();   // Log to debug output
-//builder.Logging.AddEventLog();
+builder.Logging.AddEventLog();
 
 builder.Services.AddCors(options =>
 {
@@ -132,8 +132,16 @@ builder.Services.AddScoped<OracleConnection>(sp =>
 
 var app = builder.Build();
 
+try
+{
+    StaticDataStore.LoadData(connectionString);
+}
+catch
+{
+
+}
 // Load static data here
-StaticDataStore.LoadData(connectionString);
+
 
 // Continue with middleware configuration
 if (app.Environment.IsDevelopment())

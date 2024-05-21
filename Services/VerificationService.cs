@@ -184,6 +184,28 @@ namespace OTPManager.Services
             }
         }
 
+        public bool CheckDbConnection()
+        {
+            try
+            {
+                _oracleConnection.Open();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+            finally
+            {
+                if (_oracleConnection.State == ConnectionState.Open)
+                {
+                    _oracleConnection.Close();
+                }
+            }
+
+        }
+
         public Dictionary<string, string> GetUser(int userId)
         {
             try

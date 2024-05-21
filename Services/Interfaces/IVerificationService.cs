@@ -3,6 +3,9 @@
     
     public interface IVerificationService
     {
+
+        bool CheckDbConnection();
+
         Dictionary<string, string> GetUser(int userId);
 
         Dictionary<string,string> GetUser(string userName,string identifer);
