@@ -38,7 +38,11 @@ builder.Services.AddSwaggerGen(c =>
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole(); // Log to console
 builder.Logging.AddDebug();   // Log to debug output
-builder.Logging.AddEventLog();
+builder.Logging.AddEventLog(new Microsoft.Extensions.Logging.EventLog.EventLogSettings()
+{
+    SourceName ="OTP MANAGER",
+    LogName= "Application"
+});
 
 builder.Services.AddCors(options =>
 {
@@ -159,6 +163,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<ClaimsEnrichmentMiddleware>(); // Register the claims enrichment middleware
 
+app.UseMiddleware<AuditTrailMiddleware>();
 
 // Middleware registrations...
 app.MapControllers();
