@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using OTPManager.Filters;
 using OTPManager.Models;
+using OTPManager.Models.Exepctions;
 using OTPManager.Services;
 using OTPManager.Services.Interfaces;
 using OTPManager.Utilities;
@@ -71,43 +72,145 @@ namespace OneTimeCodeApi.Controllers
 
         [HttpPost("register")]
         [Authorize(AuthenticationSchemes = "TOTP")]
-        public IActionResult Register(int userId, string smsOrEmail,string host)
+        public IActionResult Register([FromBody] UserRegistrationRequest request)
         {
-
-            var user = _verificationService.GetUser(userId);
-            string verificationToken = _verificationService.GetRegistrationToken(Int32.Parse(user["TENANT_ID"]),user["USERNAME"], smsOrEmail);
+            var user = _verificationService.GetUser(request.userId);
+            string verificationToken = _verificationService.GetRegistrationToken(Int32.Parse(user["TENANT_ID"]), user["USERNAME"]);
             var encodedToken = System.Web.HttpUtility.UrlEncode(verificationToken);
-            var verificationLink = $"{host}/verify/{user["USER_ID"]}/{encodedToken}/{smsOrEmail}";
-            if (smsOrEmail == "sms")
+            var verificationLink = $"{request.host}/verification/verify/{user["USER_ID"]}/{request.smsOrEmail}?token={encodedToken}";
+
+            if (request.smsOrEmail == "sms")
             {
                 var message = $"Please verify your phone by visiting: {verificationLink}";
                 _smsService.SendSmsAsync(user["PHONE_NUMBER"], message);
-            } else
+            }
+            else
             {
                 var body = $"Please verify your email by clicking on the link: {verificationLink}";
                 _emailService.SendEmailAsync(user["EMAIL"], "Verify your email", body);
-
             }
-            // Lookup the token in your database
-            // If found, mark the email/phone number as verified
-            // Respond accordingly
+
             return Ok("{ \"Status\": \"Ok\" }");
         }
 
-        [HttpPost("verify")]
+
+        [HttpGet("verify/{userId}/{smsOrEmail}")]
         [AllowAnonymous]
-        public IActionResult Verify([FromBody] UserValidationRequest body) 
+        public IActionResult Verify(int userId, string smsOrEmail, [FromQuery] string token)
         {
             try
             {
-                var user = _verificationService.GetUser(body.userId);
+                var user = _verificationService.GetUser(userId);
+                string secret = _verificationService.GetUserSecret(Int32.Parse(user["TENANT_ID"]), user["USERNAME"], user["TOTP_IDENTIFIER"], "REGISTER");
 
-                string secret = _verificationService.GetUserSecret(Int32.Parse(user["TENANT_ID"]), user["USERNAME"], user["TOTP_IDENTIFIER"], body.smsOrEmail);
+                if (secret == token)
+                {
+                    _verificationService.ValidateUser(userId, smsOrEmail);
 
-                if (secret == body.token)
+                    // Return success HTML for web or app
+                    string successHtml = IsAppRequest() ? @"
+            <html>
+            <head><title>Verification Successful</title></head>
+            <body>
+                <h1>Verification Successful</h1>
+                <p>Your email has been successfully verified. Please return to the app.</p>
+            </body>
+            </html>" :
+                    @"
+            <html>
+            <head><title>Verification Successful</title></head>
+            <body>
+                <h1>Verification Successful</h1>
+                <p>Your email has been successfully verified. You can now <a href='/login' target='_blank'>login</a> to your account in a new tab.</p>
+                <p>If the new tab doesn't open automatically, please <a href='/login' target='_blank'>click here</a>.</p>
+                <script type='text/javascript'>
+                    window.onload = function() {
+                        window.open('/login', '_blank');
+                    };
+                </script>
+            </body>
+            </html>";
+                    return Content(successHtml, "text/html");
+                }
+
+                // Return error HTML for web or app
+                string errorHtml = IsAppRequest() ? @"
+        <html>
+        <head><title>Verification Error</title></head>
+        <body>
+            <h1>Verification Error</h1>
+            <p>The token is invalid. Please return to the app to request a new verification.</p>
+        </body>
+        </html>" :
+                @"
+        <html>
+        <head><title>Verification Error</title></head>
+        <body>
+            <h1>Verification Error</h1>
+            <p>The token is invalid. Please <a href='/request-verification' target='_blank'>request a new verification email</a>.</p>
+            <p>If the new tab doesn't open automatically, please <a href='/request-verification' target='_blank'>click here</a>.</p>
+            <script type='text/javascript'>
+                window.onload = function() {
+                    window.open('/request-verification', '_blank');
+                };
+            </script>
+        </body>
+        </html>";
+                return Content(errorHtml, "text/html");
+            }
+            catch (Exception ex)
+            {
+                // Return error HTML for web or app with exception message
+                string errorHtml = IsAppRequest() ? $@"
+        <html>
+        <head><title>Verification Error</title></head>
+        <body>
+            <h1>Verification Error</h1>
+            <p>There was an error verifying your email: {ex.Message}. Please return to the app to try again.</p>
+        </body>
+        </html>" :
+                $@"
+        <html>
+        <head><title>Verification Error</title></head>
+        <body>
+            <h1>Verification Error</h1>
+            <p>There was an error verifying your email: {ex.Message}</p>
+            <p>Please <a href='/request-verification' target='_blank'>request a new verification email</a>.</p>
+            <p>If the new tab doesn't open automatically, please <a href='/request-verification' target='_blank'>click here</a>.</p>
+            <script type='text/javascript'>
+                window.onload = function() {{window.open('/request-verification', '_blank');
+                }};
+            </script>
+        </body>
+        </html>";
+                return Content(errorHtml, "text/html");
+            }
+        }
+
+        // Helper method to determine if the request is coming from an app
+        private bool IsAppRequest()
+        {
+            // Implement your logic to determine if the request is from the app
+            // For example, check the User-Agent header or a custom query parameter
+            return Request.Headers["User-Agent"].ToString().Contains("YourApp");
+        }
+
+
+
+        /*[HttpGet("verify/{userId}/{smsOrEmail}")]
+        [AllowAnonymous]
+        public IActionResult Verify(int userId, string smsOrEmail, [FromQuery] string token) 
+        {
+            try
+            {
+                var user = _verificationService.GetUser(userId);
+
+                string secret = _verificationService.GetUserSecret(Int32.Parse(user["TENANT_ID"]), user["USERNAME"], user["TOTP_IDENTIFIER"], smsOrEmail);
+
+                if (secret == token)
                 {
 
-                    _verificationService.ValidateUser(body.userId, body.smsOrEmail);
+                    _verificationService.ValidateUser(userId, smsOrEmail);
                     return Ok("{ \"Status\": \"Ok\" }");
 
                 }
@@ -120,11 +223,11 @@ namespace OneTimeCodeApi.Controllers
             {
                 return BadRequest(ex.Message);
             }
-        }
-            // Lookup the token in your database
-            // If found, mark the email/phone number as verified
-            // Respond accordingly
-        
+        }*/
+        // Lookup the token in your database
+        // If found, mark the email/phone number as verified
+        // Respond accordingly
+
 
 
         [HttpPost("request-totp")]
@@ -182,25 +285,25 @@ namespace OneTimeCodeApi.Controllers
                     request.Identifier = request.UserName;
                 }
                 var user = _verificationService.GetUser(request.UserName, request.Identifier);
-                string token = JWTGenerator.GenerateJwtToken(request.UserName, request.Identifier, request.TenantId, Int32.Parse(user["USER_ID"]), user["PHONE_NUMBER"], user["EMAIL"], _configuration);
+                string token = JWTGenerator.GenerateJwtToken(request.UserName, request.Identifier, Int32.Parse(user["TENANT_ID"]), Int32.Parse(user["USER_ID"]), user["PHONE_NUMBER"], user["EMAIL"], _configuration);
 
 
                 return Ok($"{{ \"Status\": \"Ok\", \"Data\" : \"{token}\" }} ");
             }
-            catch (Exception ex)
+            catch (UserNotFoundException ex)
             {
-                if (ex.Message == "User not found.")
-                {
-                    return Unauthorized($" {{ \"Status\" : \"Error\", " +
-                                            $"\"Data\": \"{ex.Message}\" " +
-                                            $"}} ");
-                }
-                else
-                {
-                    return ValidationProblem($"{{ \"Status\" : \"Error\", " +
-                                                 $"\"Data\": \"Contact System admin to check Configuration.\" " +
-                                                 $"}} ");
-                }
+                return Unauthorized($" {{ \"Status\" : \"Error\", " +
+                                           $"\"Data\": \"{ex.Message}\" " +
+                                           $"}} ");
+            }
+            catch (DBException ex)
+            {
+
+                return ValidationProblem($"{{ \"Status\" : \"Error\", " +
+                                             $"\"Data\": \"Contact System admin to check Configuration.\", " +
+                                             $"\"errorMsg\", \"{ex.Message}\" " +
+                                             $"}} ");
+
 
             }
         }

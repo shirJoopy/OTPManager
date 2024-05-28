@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.DataProtection;
 using Oracle.ManagedDataAccess.Client;
+using OTPManager.Models.Exepctions;
 using OTPManager.Services.Interfaces;
 using OTPManager.Utilities;
 using System;
@@ -8,6 +9,7 @@ using System.Transactions;
 using Vonage.Accounts;
 using Vonage.Messages.Webhooks;
 using Vonage.Users;
+
 
 namespace OTPManager.Services
 {
@@ -94,7 +96,7 @@ namespace OTPManager.Services
             }
         }
 
-        public string GenerateAndSaveSecret(int tenantId, string userName, string type = "TOTP")
+        public string GenerateAndSaveSecret(int tenantId, string userName, string type = "REGISTER")
         {
             OracleTransaction transaction = null;
 
@@ -106,12 +108,15 @@ namespace OTPManager.Services
                 string secret = SecretGenerator.GenerateRandomSecret();
                 string sql = $"insert into T010_OTP_SECRETS " +
                              $"SELECT tt.username,:secret ," +
-                             $"sysdate + INTERVAL '{_configuration["KeyInterval"]?.ToString() ?? "600"}' SECOND," +
+                             $"SYSTIMESTAMP + INTERVAL '{_configuration["KeyInterval"]?.ToString() ?? "600"}' SECOND," +
                              $"UPPER(:type) " +
                              $"from t010_authorizations tt " +
                              $"where tt.username = :username " +
-                             $"and tt.tenant_id = :tenantId " +
-                             $"and tt.valid_{validate_field} = 'Y'";
+                             $"and tt.tenant_id = :tenantId ";
+                if (type != "REGISTER")
+                {
+                    sql += $"and tt.valid_{validate_field} = 'Y'";
+                }
 
                 using (var cmd = new OracleCommand(sql, _oracleConnection))
                 {
@@ -299,14 +304,14 @@ namespace OTPManager.Services
                     }
                     else
                     {
-                        throw new KeyNotFoundException("User not found.");
+                        throw new UserNotFoundException("User with the name : "+TextUtils.HideText(username)+" , and identifier : "+TextUtils.HideText(identifier) +" not found");
                     }
                 }
             }
             catch (Exception ex)
             {
                 // Consider logging the exception details
-                throw;
+                throw new DBException(ex.Message, ex);
             }
             finally
             {
@@ -331,7 +336,7 @@ namespace OTPManager.Services
                                 WHERE ts.USERNAME = :username
                                 AND   ts.Username = t10.username
                                 AND  ts.TYPE = upper(:type)
-                                AND ts.EXPIRATION > SYSTIMESTAMP ";
+                                AND (CAST(ts.EXPIRATION AS DATE) - DATE '1970-01-01') > (CAST(systimestamp AS DATE) - DATE '1970-01-01') ";
 
                 if (type.ToLower() == "sms")
                 {
@@ -356,7 +361,7 @@ namespace OTPManager.Services
             catch (Exception ex)
             {
                 // Consider logging the exception details
-                throw;
+                throw new DBException(ex.Message);
             }
             finally
             {
@@ -404,9 +409,9 @@ namespace OTPManager.Services
             }
         }
 
-        public string GetRegistrationToken(int tenantId, string userName, string smsOrEmail)
+        public string GetRegistrationToken(int tenantId, string userName)
         {
-            return GenerateAndSaveSecret(tenantId, userName, smsOrEmail);
+            return GenerateAndSaveSecret(tenantId, userName, "REGISTER");
         }
 
         public void ValidateUser(int userId, string smsOrEmail)

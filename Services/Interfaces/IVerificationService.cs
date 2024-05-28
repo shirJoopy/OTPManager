@@ -16,7 +16,7 @@
 
         int GetUserId(string userName, string? phoneNumber);
 
-        string GetRegistrationToken(int tenantId, string userName, string smsOrEmail);
+        string GetRegistrationToken(int tenantId, string userName);
 
         void ValidateUser(int userId, string smsOrEmail);
 

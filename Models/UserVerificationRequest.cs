@@ -6,7 +6,6 @@ namespace OTPManager.Models
     {
         public string? Identifier { get; set; }
         public string UserName { get; set; }
-        public int TenantId{ get; set; }
     }
     public class OTPVerificationRequest 
     {
@@ -16,6 +15,13 @@ namespace OTPManager.Models
     public class UserValidationRequest
     {
         public string? token { get; set; }
+        public string smsOrEmail { get; set; }
+        public int userId { get; set; }
+    }
+
+    public class UserRegistrationRequest
+    {
+        public string host { get; set; }
         public string smsOrEmail { get; set; }
         public int userId { get; set; }
     }
