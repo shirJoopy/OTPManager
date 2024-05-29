@@ -301,7 +301,7 @@ namespace OneTimeCodeApi.Controllers
 
                 return ValidationProblem($"{{ \"Status\" : \"Error\", " +
                                              $"\"Data\": \"Contact System admin to check Configuration.\", " +
-                                             $"\"errorMsg\", \"{ex.Message}\" " +
+                                             $"\"errorMsg\": \"{ex.Message}\" " +
                                              $"}} ");
 
 
