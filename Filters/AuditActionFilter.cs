@@ -49,7 +49,7 @@ namespace OTPManager.Filters
             _logger.LogInformation($"Action {context.ActionDescriptor.DisplayName} executed with status code: {context.HttpContext.Response.StatusCode}");
 
 
-        }
+            }
 
         public async Task OnExceptionAsync(ExceptionContext context)
         {

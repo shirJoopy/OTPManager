@@ -285,7 +285,7 @@ namespace OneTimeCodeApi.Controllers
                     request.Identifier = request.UserName;
                 }
                 var user = _verificationService.GetUser(request.UserName, request.Identifier);
-                string token = JWTGenerator.GenerateJwtToken(request.UserName, request.Identifier, Int32.Parse(user["TENANT_ID"]), Int32.Parse(user["USER_ID"]), user["PHONE_NUMBER"], user["EMAIL"], _configuration);
+                string token = JWTGenerator.GenerateJwtToken(request.UserName, request.Identifier, user, _configuration);
 
 
                 return Ok($"{{ \"Status\": \"Ok\", \"Data\" : \"{token}\" }} ");

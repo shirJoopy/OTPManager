@@ -23,8 +23,8 @@ namespace OTPManager.Middleware
             // Check if user is authenticated and has claims
             if (context.User.Identity.IsAuthenticated)
             {
-                var tenantId = context.User.FindFirst("tenantId")?.Value;
-                var userId = context.User.FindFirst("userId")?.Value;
+                var tenantId = context.User.FindFirst("TENANT_ID")?.Value;
+                var userId = context.User.FindFirst("USER_ID")?.Value;
                 var username = context.User.FindFirst("userName")?.Value;
                 var identifier = context.User.FindFirst("identifier")?.Value;
                 var userDetails = verificationService.GetUser(Int32.Parse(userId));

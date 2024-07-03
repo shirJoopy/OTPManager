@@ -1,4 +1,5 @@
 ﻿using Microsoft.IdentityModel.Tokens;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -9,22 +10,21 @@ namespace OTPManager.Utilities
     {
         public static Dictionary<string, string> JWTParams { get; private set; }
 
-        public static string GenerateJwtToken(string userName, string identifier, int tenantId, int userId, string phoneNumber, string email, IConfiguration configuration)
+        public static string GenerateJwtToken(string userName,string identifier, Dictionary<string,string> user, IConfiguration configuration)
         {
             // Define token claims, including custom claims for tenantId and userId
-            var claims = new List<Claim>
+            var claims = new List<Claim>();
+            claims.Add(new Claim("userName", userName));
+            claims.Add(new Claim("identifier", identifier));
+            foreach (var kvp in user)
             {
-                new Claim("userName", userName),
-                new Claim("identifier", identifier),
-                new Claim("phoneNumber", phoneNumber??""),
-                new Claim("email", email??""),
-                new Claim("tenantId", tenantId.ToString()), // Custom claim for tenantId
-                new Claim("userId", userId.ToString()), // Custom claim for userId
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, new DateTimeOffset(DateTime.Now).ToUnixTimeSeconds().ToString())
-                // Add additional claims as needed
-            };
-
+                if (kvp.Value != null)
+                {
+                    claims.Add(new Claim(kvp.Key, kvp.Value));
+                }
+                
+            }
+            
             // Create signing key
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JwtEncryptionKey"]));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

@@ -36,7 +36,7 @@ namespace OTPManager.Services
                                ALLOW_APPROVE_PLANS,
                                SUBROLE_ID,
                                EMAIL,
-                               LANG,
+                               t10.LANG,
                                USER_ID,
                                PERMISSION_ROLE_ID,
                                MANAGER_PERM_ROLE_ID,
@@ -273,11 +273,12 @@ namespace OTPManager.Services
                 _oracleConnection.Open();
 
 
-                string sql = $@"{this.userFieldsSql}
-                          FROM T010_AUTHORIZATIONS t10
+                string sql = $@"{this.userFieldsSql}, t250.LANG_ID
+                          FROM T010_AUTHORIZATIONS t10, T250_LANG_MAP t250
                           WHERE t10.USERNAME = :username 
                           AND t10.TOTP_IDENTIFIER = :identifier
                           AND t10.SUSPEND_STATUS = 'NO'
+                          AND t10.LANG = t250.LANG_NAME
                           AND (t10.locked_until is null OR t10.locked_until < sysdate)";
 
                 using var cmd = new OracleCommand(sql, _oracleConnection);
