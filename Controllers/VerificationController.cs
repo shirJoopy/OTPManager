@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json.Linq;
 using OTPManager.Filters;
 using OTPManager.Models;
@@ -306,6 +307,33 @@ namespace OneTimeCodeApi.Controllers
 
 
             }
+        }
+
+        [HttpGet("request-jwt/{joopyToken}")]
+        [Authorize(AuthenticationSchemes = "TOTP")]
+        public IActionResult GetJoopyAccessToken(string joopyToken)
+        {
+            try
+            {
+                int userId = Int32.Parse(HttpContext.Items["userId"].ToString());
+                var userToken = _verificationService.GetUserJoopyToken(userId, "JUPY");
+
+                if (userToken == joopyToken)
+                {
+                    string jwt = JWTGenerator.GenerateAccessJwtToken((Dictionary<string, string>)HttpContext.Items, _configuration);
+                    return Ok($"{{ \"Status\": \"Ok\", \"Data\" : \"{jwt}\" }} ");
+
+                }
+                return Unauthorized($" {{ \"Status\" : \"Error\", \"Data\": \"The token does not match in db\"}}");
+
+            }
+            catch (Exception e)
+            {
+                return BadRequest($" {{ \"Status\" : \"Error\", " +
+                                           $"\"Data\": \"{e.Message}\" " +
+                                           $"}} ");
+            }
+            
         }
 
         [HttpGet("validate-totp/{totp}")]

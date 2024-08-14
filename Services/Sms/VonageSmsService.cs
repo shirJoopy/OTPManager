@@ -10,15 +10,15 @@ using OTPManager.Models;
 
 namespace OTPManager.Services
 {
-    public class SmsService : ISmsService
+    public class VonageSmsService : ISmsService
     {
 
         private Credentials credentials;
         private VonageClient client;
-        private readonly SmsSettings _smsSettings;
+        private readonly VonageSettings _smsSettings;
         private readonly ILogger<AuditTrailMiddleware> _logger;
 
-        public SmsService(IOptions<SmsSettings> smsSettings,ILogger<AuditTrailMiddleware> logger)
+        public VonageSmsService(IOptions<VonageSettings> smsSettings,ILogger<AuditTrailMiddleware> logger)
         {
             _smsSettings = smsSettings.Value;
             _logger = logger;

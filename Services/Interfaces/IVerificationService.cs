@@ -23,5 +23,7 @@
         public string GenerateAndSaveSecret(int tenantId,string userName,string type);
 
         public string SetAndGetUserJoopyToken(int userId, string tokenType = "");
+        public string GetUserJoopyToken(int userId, string tokenType = "");
+
     }
 }

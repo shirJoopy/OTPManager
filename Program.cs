@@ -8,6 +8,7 @@ using OTPManager.Middleware;
 using OTPManager.Models;
 using OTPManager.Services;
 using OTPManager.Services.Interfaces;
+using OTPManager.Services.Sms;
 using OTPManager.Utilities;
 using Serilog;
 using System.Net;
@@ -49,9 +50,24 @@ builder.WebHost.ConfigureKestrel(options =>
         });
     }
 });
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.Configure<VonageSettings>(builder.Configuration.GetSection("SmsProviders:Vonage"));
+builder.Services.Configure<CellactSettings>(builder.Configuration.GetSection("SmsProviders:Cellact"));
 
+
+var smsSettings = new SmsSettings();
+builder.Configuration.GetSection("SmsSettings").Bind(smsSettings);
+
+if (smsSettings.SmsProvider == "Cellact")
+{
+    builder.Services.AddHttpClient<ISmsService, CellactSmsService>();
+}
+else if (smsSettings.SmsProvider == "Vonage")
+{
+    builder.Services.AddTransient<ISmsService, VonageSmsService>();
+}
 // Add services to the container.
-builder.Services.AddScoped<ISmsService, SmsService>();
+builder.Services.AddScoped<ISmsService, VonageSmsService>();
 builder.Services.AddScoped<SendEmailTotp>();
 builder.Services.AddScoped<SendSMSTotp>();
 builder.Services.AddControllers(options => options.Filters.Add<AuditActionFilter>());
@@ -74,9 +90,10 @@ builder.Services.AddCors(options =>
 });
 
 var encryptionKey = builder.Configuration["JwtEncryptionKey"];
-builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
-builder.Services.Configure<SmsSettings>(builder.Configuration.GetSection("SmsSettings"));
+
 builder.Services.AddTransient<EmailService>();
+
+
 
 builder.Services.AddAuthorization(options =>
 {

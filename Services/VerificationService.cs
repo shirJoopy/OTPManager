@@ -410,6 +410,41 @@ namespace OTPManager.Services
             }
         }
 
+        public string GetUserJoopyToken(int userId, string tokenType = "")
+        {
+            try
+            {
+                _oracleConnection.Open();
+                if (tokenType != string.Empty)
+                {
+                    tokenType = "_" + tokenType.ToUpper();
+                }
+                string sql = $@"SELECT  t.USER_TOKEN{tokenType} from t010_authorizations t
+                                where t.user_id = :userId";
+
+                using var cmd = new OracleCommand(sql, _oracleConnection);
+                cmd.Parameters.Add("userId", OracleDbType.Int64).Value = userId;
+
+                var token = cmd.ExecuteScalar();
+                
+
+                return (token ?? "").ToString();
+
+            }
+            catch (Exception ex)
+            {
+                // Consider logging the exception details
+                throw;
+            }
+            finally
+            {
+                if (_oracleConnection.State == System.Data.ConnectionState.Open)
+                {
+                    _oracleConnection.Close();
+                }
+            }
+        }
+
         public string GetRegistrationToken(int tenantId, string userName)
         {
             return GenerateAndSaveSecret(tenantId, userName, "REGISTER");
